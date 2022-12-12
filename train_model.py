@@ -10,7 +10,9 @@ print('Processing images:')
 for file in tqdm(glob('val2017/*')):
     img = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
     sift = cv2.SIFT_create()
-    kp, des = sift.detectAndCompute(img, None)
+    des = sift.detectAndCompute(img, None)[1]
+    if des is None:
+        continue
     des_list += list(des)
 des_list = np.array(des_list)
 
