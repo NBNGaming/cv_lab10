@@ -1,0 +1,7 @@
+.idea/
+__pycache__/
+**/.DS_Store
+
+coco128/
+val2017/
+voc2012/
