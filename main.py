@@ -1,3 +1,4 @@
+import torch
 import open_clip
 import numpy as np
 import pandas as pd
@@ -24,11 +25,13 @@ db, neighbours = load_db()
 model, preprocess = load_model()
 st.title('Image Search')
 uploaded_file = st.file_uploader('Choose an image...', type=['png', 'jpg', 'jpeg', 'webp', 'tiff'])
+
 if uploaded_file is not None:
     img = Image.open(uploaded_file).convert('RGB')
     img = ImageOps.exif_transpose(img)
-    image = preprocess(img).unsqueeze(0)
-    vec = model.encode_image(image).cpu().detach().numpy()
+    with torch.no_grad():
+        image = preprocess(img).unsqueeze(0)
+        vec = model.encode_image(image).cpu().detach().numpy()
 
     indices = neighbours.kneighbors(vec.reshape(1, -1), return_distance=False)[0]
     paths = np.hstack(db.loc[indices, ['path']].values)
