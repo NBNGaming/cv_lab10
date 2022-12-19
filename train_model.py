@@ -1,19 +1,22 @@
-import cv2
+import torch
 import pickle
+import open_clip
 import numpy as np
 from glob import glob
 from tqdm import tqdm
+from PIL import Image
 from sklearn.cluster import MiniBatchKMeans
+
+print('Loading model...')
+model, _, preprocess = open_clip.create_model_and_transforms('ViT-H-14', pretrained='laion2b_s32b_b79k')
 
 des_list = []
 print('Processing images:')
-for file in tqdm(glob('val2017/*')):
-    img = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
-    sift = cv2.SIFT_create()
-    des = sift.detectAndCompute(img, None)[1]
-    if des is None:
-        continue
-    des_list += list(des)
+with torch.no_grad():
+    for file in tqdm(glob('val2017/*')):
+        image = preprocess(Image.open(file)).unsqueeze(0)
+        image_features = model.encode_image(image).cpu().detach().numpy()
+        des_list += list(image_features)
 des_list = np.array(des_list)
 
 print('Training k-means:')
