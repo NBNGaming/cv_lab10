@@ -1,9 +1,8 @@
-import cv2
-import pickle
+import open_clip
 import numpy as np
 import pandas as pd
 import streamlit as st
-from gen_db import img_to_vec
+from PIL import Image, ImageOps
 from sklearn.neighbors import NearestNeighbors
 
 
@@ -17,19 +16,20 @@ def load_db():
 
 @st.cache(allow_output_mutation=True)
 def load_model():
-    with open('model.pickle', 'rb') as f:
-        return pickle.load(f)
+    clip, _, preproc = open_clip.create_model_and_transforms('ViT-B-32', pretrained='laion400m_e32')
+    return clip, preproc
 
 
 db, neighbours = load_db()
-model, n = load_model()
+model, preprocess = load_model()
 st.title('Image Search')
 uploaded_file = st.file_uploader('Choose an image...', type=['png', 'jpg', 'jpeg', 'webp', 'tiff'])
 if uploaded_file is not None:
-    file_arr = np.frombuffer(uploaded_file.getbuffer(), dtype='uint8')
-    img = cv2.imdecode(file_arr, cv2.IMREAD_GRAYSCALE)
+    img = Image.open(uploaded_file).convert('RGB')
+    img = ImageOps.exif_transpose(img)
+    image = preprocess(img).unsqueeze(0)
+    vec = model.encode_image(image).cpu().detach().numpy()
 
-    vec = img_to_vec(img, model, n)
     indices = neighbours.kneighbors(vec.reshape(1, -1), return_distance=False)[0]
     paths = np.hstack(db.loc[indices, ['path']].values)
 
